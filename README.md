@@ -119,6 +119,66 @@ cron	|REQUIRED - cron schedule for the PDF generation
 
 Note:
 again, "shortname" must be unique (it will be used to generate file name, and will fail if two identical ones are present), and must not contain an underscore "_".
+
 Note:
 You can add more parameters to be used in the saved searches or dashboard templates. Only the "REQUIRED" fields are used by the script, all other parameters are substituted automagically in the templates.
+
+### saved searches template
+The saved searches template contains the searches needed to populate the dashboard panels.
+For every shortname (or line) in the report list, all these search templates will be created. I.e. if you have 3 panels and 10 lines, you will end up with 30 saved searches.
+#### template.conf 
+```
+[dashboard_search1_%(shortname)s]
+alert.track = 0
+description = search number one
+dispatch.earliest_time = -14d
+dispatch.latest_time = now
+display.general.type = statistics
+display.statistics.overlay = heatmap
+search = index=abc sourcetype=def (BASE SEARCH TERMS) eventtype=%(search_term1)s %(search_term2)s | stats count by host
+
+[dashboard_trend_%(shortname)s]
+alert.suppress = 0
+alert.track = 0
+description = trend
+dispatch.earliest_time = -4w@w+1d
+dispatch.latest_time = now
+search = index=abc sourcetype=def (OTHER SEARCH TERMS)  %(search_term2)s | timechart span=1d count dc(host) as unique_hosts"
+
+[_ScheduledView__dashboard_%(shortname)s]
+action.email = 1
+action.email.maxtime = 60m
+action.email.message.view = A PDF was generated for $name$
+action.email.paperorientation = landscape
+action.email.papersize = a3
+action.email.pdfview = dashboard_%(shortname)s
+action.email.sendpdf = 1
+action.email.subject.view = Dashboard: '$name$'
+action.email.to = %(email)s
+action.email.cc = 
+action.email.ttl = 10
+action.email.useNSSubject = 1
+cron_schedule = %(cron)s
+description = scheduled search for view name=dashboard_%(shortname)s
+dispatch.earliest_time = 1
+dispatch.latest_time = 2
+enableSched = 1
+is_visible = 0
+search = | noop
+```
+
+#### Parameters substitution
+You can use within the template python dictionary string replacement syntax, i.e. %(shortname)s will replace its occurrence in the template with the value of the "shortname" parameter from the report_list.csv file.
+
+**Note:**
+Every saved search must start with the defined "prefix", in order to be found again later: it will be used to be detected and then deleted.
+
+Moreover, it must end with "_shortname" !!! the underscore is mandatory !!! (it is used to extract the shortname, in order to construct the name of the dashboard xml file to be deleted.)
+
+If you need to use a literal "%" in your search queries, you need to escape them, like in 
+`|eval first=strftime(first, "%%c")`
+The last saved search (_ScheduledView__dashboard_%(shortname)s) is actually the one allowing the PDF scheduling. The $name$ parameter is a substitution parameter used by Splunk Mailing system.
+
+**Note:**
+I stumbled on another PDF scheduler bug: despite declaring in the scheduled view the format of the report (A3, Landscape), it is not used. It always fall back to the global splunk configuration found under System settings » Email settings 
 
