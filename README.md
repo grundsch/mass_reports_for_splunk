@@ -18,8 +18,10 @@ PDF Generator:
 -	Limited formating control
 -	page layout, font size, graph size, graph format (size of label area vs graph area, …)
 -	No bookmark/hyperlink within report
+
 Template system:
 -	Developed own script
+
 Workarounds:
 -	Scheduled PDF works only if using saved searches, not inline… http://answers.splunk.com/answers/74295/empty-scheduled-pdf-reports.html#answer-98352
 -	Scheduledview report format is not used, it takes only the global configuration?!
