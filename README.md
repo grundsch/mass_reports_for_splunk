@@ -91,7 +91,7 @@ savedsearches_template = ./local/template.conf
 parameter|	description
 ------------- | -------------
 report_list_csv	|the csv list containing all parameters necessary to generate the dashboard based on the templates
-file_to_edit	must point to savedsearches.conf, it will edit this file to add the saved searches necessary to populate the dashboards
+file_to_edit	| must point to savedsearches.conf, it will edit this file to add the saved searches necessary to populate the dashboards
 backup	| backup name of the file to edit
 prefix	|everything (saved searches as well as dashboard names) will have this prefix. It is also used to DELETE existing saved searches and dashboards (anything starting with this prefix will be deleted first), so be sure to not have collisions with dashboards not managed by this script.
 dashboard_path	|should not be changed, the path to the views
