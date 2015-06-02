@@ -101,3 +101,24 @@ savedsearches_template	|the name of the savedsearches template file that will be
 Note:
 All paths are relative to the app directory.
 
+### Report list
+This report_list_csv contains all parameters necessary to create and schedule the dashboards.
+It is placed in the lookup directory, so that it can be easily edited/managed by the splunk built-in lookup functions, or via the Lookup-editor app.
+#### dashboard_list.csv 
+```
+shortname,search_term1,search_term2,email,cron
+team1,searchvalue1,searchvalue2,"email1@somecompany.com,email2@somecompany.com",0 13 * * 2
+team2,searchvalue3,NOT searchvalue4,email@somecompany.com,0 7 * * 3
+```
+parameter|	description
+------------- | -------------
+shortname	|REQUIRED - will be used everywhere (in saved searches names, dashboard file names, ...). Must be unique! Must not contain "_"!
+search_term1, search_term2	|name of variables used to filter the scope (here based on a lookup definition, but can be anything)
+email	|REQUIRED - comma separated list of email addresses to receive the reports, if more than one must be enclosed into ""
+cron	|REQUIRED - cron schedule for the PDF generation
+
+Note:
+again, "shortname" must be unique (it will be used to generate file name, and will fail if two identical ones are present), and must not contain an underscore "_".
+Note:
+You can add more parameters to be used in the saved searches or dashboard templates. Only the "REQUIRED" fields are used by the script, all other parameters are substituted automagically in the templates.
+
