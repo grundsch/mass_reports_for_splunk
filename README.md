@@ -30,7 +30,7 @@ Workarounds:
 -	Top alignement in table cells (default is bottom).
 -	Line feed in Multivalue cell (nicer format in the PDF): 
   '''eval Description=mvappend(Description," ",mvappend("","Advisories: ",Adv))'''
-- Single Value "missuse" to show conditionally a header with multiple values (text): use delim to insert "&lt;br/&gt;" that will be honored (fortunately!) by the PDF generator (but not by the view…)
+- Single Value "missuse" to show conditionally a header with multiple values (text): use delim to insert '''"&lt;br/&gt;"''' that will be honored (fortunately!) by the PDF generator (but not by the view…)
 External reporting engine?
 -	Any recommendation for external reporting engine? Jasper reports?
  
