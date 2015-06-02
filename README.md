@@ -182,3 +182,72 @@ The last saved search (_ScheduledView__dashboard_%(shortname)s) is actually the 
 **Note:**
 I stumbled on another PDF scheduler bug: despite declaring in the scheduled view the format of the report (A3, Landscape), it is not used. It always fall back to the global splunk configuration found under System settings » Email settings 
 
+### Dashboard template
+The dashboard has been first manually created within the splunk GUI.
+Once everything looks like you want, you can copy the generated xml, and replace the static parts with the parameter substitutions.
+#### dashboard_template.xml 
+```
+<dashboard>
+  <label>Dashboard %(shortname)s</label>
+  <description />
+  <row>
+    <panel>
+      <chart>
+        <title>Dashboard trend</title>
+        <searchName>dashboard_trend_%(shortname)s</searchName>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.nullValueMode">connect</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.axisY.minimumNumber">0</option>
+        <option name="charting.axisY2.minimumNumber">0</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Dashboard table</title>
+        <searchName>dashboard_search1_%(shortname)s</searchName>
+        <option name="wrap">true</option>
+        <option name="rowNumbers">false</option>
+        <option name="dataOverlayMode">heatmap</option>
+        <option name="drilldown">none</option>
+        <option name="count">10</option>
+      </table>
+    </panel>
+  </row>
+</dashboard>
+```
+Here we are using the "shortname" parameter to define the names of the saved searches.
+
+## Dashboard generator script
+Now the fun part: the dashboard generator script.
+
+It is written in Python (internal language used by Splunk), and uses the Splunk Python instance (not the OS one). We are also using some modules from Splunk, as it allows to integrate the script into Splunk:
+The script is started as a search from the app. It will log some info into /opt/splunk/var/log/splunk/dashboardGenerator.py.log (in turn added to the _internal index), as well as output events if everything worked fine.
+As mentioned, there aren't many error checks, meaning in case of error you don't get much output and need to check the log.
+The script takes one optional argument: the name of the config file (in the local/ directory). By default it is dashboard_generator.conf
+
+In short it is doing the following:
+-	getting all configuration parameters
+-	loading the old savedsearches.conf file
+-	delete any section which name contains "prefix" (dashboard_ in our case)
+-	delete any dashboard file that match prefix_shortname-type.xml (this should take care the usecase when a report entry in the csv file has been deleted, i.e. we get rid of old stuff)
+-	recreate new dashboard files
+-	recreate all saved and scheduled searches needed for the dashboards
+-	refresh view, saved searches, scheduled searches
+-	reset the scheduled searches with the cron time, in order to force Splunk Scheduler to reevaluate the next time it must send the PDF (just refreshing the scheduled searches is not enough)
+-	output as "events" some debugging info (only if nothing has gone wrong)
+
