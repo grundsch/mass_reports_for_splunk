@@ -236,8 +236,11 @@ Here we are using the "shortname" parameter to define the names of the saved sea
 Now the fun part: the dashboard generator script.
 
 It is written in Python (internal language used by Splunk), and uses the Splunk Python instance (not the OS one). We are also using some modules from Splunk, as it allows to integrate the script into Splunk:
+
 The script is started as a search from the app. It will log some info into /opt/splunk/var/log/splunk/dashboardGenerator.py.log (in turn added to the _internal index), as well as output events if everything worked fine.
+
 As mentioned, there aren't many error checks, meaning in case of error you don't get much output and need to check the log.
+
 The script takes one optional argument: the name of the config file (in the local/ directory). By default it is dashboard_generator.conf
 
 In short it is doing the following:
@@ -250,4 +253,123 @@ In short it is doing the following:
 -	refresh view, saved searches, scheduled searches
 -	reset the scheduled searches with the cron time, in order to force Splunk Scheduler to reevaluate the next time it must send the PDF (just refreshing the scheduled searches is not enough)
 -	output as "events" some debugging info (only if nothing has gone wrong)
+
+## Splunk integration as command
+The script is integrated as a new command in the search language. It allows to be started from the Splunk GUI (not from the command line on the server), and with the credentials of the logged-in user.
+
+Note:
+I have only tried it with my credentials, which belongs to the admin group, so I actually don't know what really happens if you try with normal user credentials... maybe the files get generated, but the refresh will not work...? 
+
+Anyway, two files are needed:
+
+1) the commands.conf file defines the command and the script to call:
+### commands.conf 
+```
+[dashboardgenerator]
+filename = dashboardGenerator.py
+passauth = true
+```
+2) the searchbnf.conf provides helps when typing the command in the search box in the Splunk UI:
+### searchbnf.conf 
+```
+[dashboardgenerator-command]
+syntax = | dashboardgenerator
+shortdesc = Recreate dashboards based on template
+description = This will recreate dashboards based on a template (both saved searches and view) and a lookup file (to know what dashboard to generate)
+usage = public
+
+[dashboardgenerator-options]
+syntax = config_file
+description = configuration file pointing to all other files (templates  and list). Default is dashboardgenerator.conf
+```
+
+Note:
+I still have an issue with the searchbnf.conf file: the generic help works, but not the options part... need to debug that...
+
+## Invocation
+In order to regenerate all dashboards, you must type in the search box in the app where this setup is installed:
+
+`| dashboardgenerator`
+
+or with an argument pointing to another config file:
+
+`| dashboardgenerator myconfig.conf`
+
+You can look at the debug log file the log file (default debug setting to INFO, you can change it in the script itself to DEBUG):
+`index=_internal source=*dashboardgenerator.py.log`
+
+## UI cleanup
+This script will generate a lot of saved seaches and dashboards. In order to keep the UI menu free from clutter, you can adapt your navigation menu to regroup the generated stuff together.
+
+You need to go to the settings page, User interface » Navigation menus » default 
+### default 
+```
+<nav>
+    <view name="flashtimeline" default='true' />
+    <collection label="Dashboards">
+        <view source="unclassified" match="dashboard"/>
+        <divider />
+    </collection>
+    <collection label="Views">
+      <collection label="Generated dashboards">
+            <view source="unclassified" match="dashboard_" />
+        </collection>
+      <divider />
+        <view source="unclassified" />
+        <divider />
+    </collection>
+    <collection label="Searches and Reports">
+        <collection label="Reports">
+            <saved source="unclassified" match="report" />
+        </collection>
+        <divider />
+      <collection label="Mass reports">
+            <saved source="unclassified" match="dashboard_" />
+        </collection>
+      <divider />
+        <saved source="unclassified" />
+    </collection>
+</nav>
+```
+By adding two collections, looking for "saved" or "view" source matching your prefix ("dashboard_" in our case), we can regroup everything under submenus.
+
+
+## PDF generating scripts hacks
+Various hacks to the PDF generating scripts are needed to get a proper formating. These are overwritten by any Splunk upgrade. 
+
+!! I had to set the default PDF report layout to A3 and Landscape. Individual settings in the scheduled view does not work (i.e. is not used). !!
+ 
+### Larger charts
+Charts have a hardcoded size, and are made for A4 or Letter (I think). For the A3 Layout we choosed, they are too small and truncates labels heavily.
+
+The following changes hardcode a bigger value:
+```
+# [~/lib/python2.7/site-packages/splunk/pdf]> diff -u pdfgen_chart.py.old pdfgen_chart.py
+--- pdfgen_chart.py.old 2015-01-21 15:20:03.161939270 +0100
++++ pdfgen_chart.py   2015-01-21 15:23:39.701480429 +0100
+@@ -108,7 +108,7 @@
+ class Chart(SvgBasedViz):
+     def __init__(self, data, fields, props, runningAsScript=False):
+-        SvgBasedViz.__init__(self, data, fields, props, width=600, height=350, genSvgScriptName="gensvg.js", runningAsScript=runningAsScript)
++        SvgBasedViz.__init__(self, data, fields, props, width=1200, height=350, genSvgScriptName="gensvg.js", runningAsScript=runningAsScript)
+ class Map(SvgBasedViz):
+     def __init__(self, data, fields, props, runningAsScript=False):
+```
+
+### Top alignment in table cells
+Tables have a default bottom cell aligment. The following hack makes it top aligned, as on the web gui.
+```
+# [~/lib/python2.7/site-packages/reportlab/platypus]> diff -u tables.py.old tables.py
+--- tables.py.old 2014-07-30 01:26:20.000000000 +0200
++++ tables.py  2014-11-14 11:23:12.000000000 +0100
+@@ -42,7 +42,7 @@
+     color = 'black'
+     alignment = 'LEFT'
+     background = 'white'
+-    valign = "BOTTOM"
++    valign = "TOP"
+     href = None
+     destination = None
+     def __init__(self, name, parent=None):
+```
 
