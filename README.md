@@ -19,7 +19,7 @@ PDF Generator:
 -	page layout, font size, graph size, graph format (size of label area vs graph area, …)
 -	No bookmark/hyperlink within report
 
-** Solution: **
+**Solution:**
 - Template system:	Developed own script
 
 Workarounds:
