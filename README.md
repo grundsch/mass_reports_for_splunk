@@ -1,9 +1,6 @@
 # mass_reports_for_splunk
 An (ugly) script to generate a large number of sheduled PDF views in Splunk based on a template
 
-* auto-gen TOC:
-{:toc}
-
 ## Introduction
 
 **Need**: provide a dashboard to a large group of sysadmin, showing their systems only.
