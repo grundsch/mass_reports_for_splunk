@@ -89,6 +89,7 @@ dashboard_template = dashboard_template.xml
 savedsearches_template = ./local/template.conf
 ```
 parameter|	description
+------------- | -------------
 report_list_csv	|the csv list containing all parameters necessary to generate the dashboard based on the templates
 file_to_edit	must point to savedsearches.conf, it will edit this file to add the saved searches necessary to populate the dashboards
 backup	| backup name of the file to edit
